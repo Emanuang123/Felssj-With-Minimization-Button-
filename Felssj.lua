@@ -169,7 +169,7 @@ task.spawn(function()
     text.Size = UDim2.new(1, -10, 1, -10)
     text.Position = UDim2.new(0, 5, 0, 5)
     text.BackgroundTransparency = 1
-    text.Text = "Pressione F4 para minimizar"
+    text.Text = "Press F4 to Minimize"
     text.TextColor3 = Color3.fromRGB(255, 255, 255)
     text.TextScaled = true
     text.Font = Enum.Font.GothamMedium
