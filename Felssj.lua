@@ -141,102 +141,169 @@ v17:Button(v7("\145\44\120\23\42\242\251\189\98\77\10\37\246\230\182\35","\143\2
 v17:Button(v7("\11\86\36\204\223\55\233\43\86\27\209\211\29\242","\134\66\56\87\184\190\116"),function() v12();end); -- InstaCoinLimit
 v17:Button(v7("\21\63\15\178\23\226\53\48\124\8\0\190\21\239","\85\92\81\105\219\121\139\65"),function() v13();end); -- Infinite Yield
 
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local PlayerGui = player:WaitForChild("PlayerGui")
+
+    local alertGui = Instance.new("ScreenGui")
+    alertGui.Name = "F4_Alert"
+    alertGui.ResetOnSpawn = false
+    alertGui.Parent = PlayerGui
+
+    local frame = Instance.new("Frame")
+    frame.Parent = alertGui
+    frame.AnchorPoint = Vector2.new(0.5, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.05, 0)
+    frame.Size = UDim2.new(0, 260, 0, 40)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 999
+
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 8)
+
+    local text = Instance.new("TextLabel")
+    text.Parent = frame
+    text.Size = UDim2.new(1, -10, 1, -10)
+    text.Position = UDim2.new(0, 5, 0, 5)
+    text.BackgroundTransparency = 1
+    text.Text = "Pressione F4 para minimizar"
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamMedium
+    text.ZIndex = 1000
+
+    -- Remove automaticamente após alguns segundos
+    task.delay(4, function()
+        if alertGui then
+            alertGui:Destroy()
+        end
+    end)
+end)
 pcall(function()
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
-local containers = {}
+    local Players = game:GetService("Players")
+    local UIS = game:GetService("UserInputService")
+    local Camera = workspace.CurrentCamera
+    local CoreGui = game:GetService("CoreGui")
+    local player = Players.LocalPlayer
 
-if lp then
-local pg = lp:FindFirstChild("PlayerGui")
-if pg then table.insert(containers, pg) end
-end
+    -- 🔍 ACHAR O SCREEN GUI DO FELSSJ
+    local felssjGui
+    for _, v in ipairs(CoreGui:GetChildren()) do
+        if v:IsA("ScreenGui") and v:FindFirstChild("main", true) then
+            felssjGui = v
+            break
+        end
+    end
 
-table.insert(containers, game:GetService("CoreGui"))
+    if not felssjGui then
+        warn("Felssj ScreenGui não encontrado")
+        return
+    end
 
-local function findTitle()
-for _,c in ipairs(containers) do
-for _,d in ipairs(c:GetDescendants()) do
-if (d:IsA("TextLabel") or d:IsA("TextButton"))
-and tostring(d.Text):lower():match("felss") then
-return d
-end
-end
-end
+    -- 🟢 GUI DO BOTÃO (PRIORIDADE MÁXIMA)
+    local btnGui = Instance.new("ScreenGui")
+    btnGui.Name = "Felssj_Minimizer"
+    btnGui.IgnoreGuiInset = true
+    btnGui.ResetOnSpawn = false
+    btnGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    btnGui.DisplayOrder = 999999
+    btnGui.Parent = CoreGui
 
-for _,c in ipairs(containers) do    
-    for _,f in ipairs(c:GetDescendants()) do    
-        if f:IsA("Frame") then    
-            for _,ch in ipairs(f:GetChildren()) do    
-                if ch:IsA("TextLabel") and #tostring(ch.Text) < 12 then    
-                    return ch    
-                end    
-            end    
-        end    
-    end    
-end    
+    -- 🔘 BOTÃO FLUTUANTE
+    local BTN_SIZE = 38
 
-return nil
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(BTN_SIZE, BTN_SIZE)
+    btn.Position = UDim2.new(1, -(BTN_SIZE + 20), 0.5, -(BTN_SIZE / 2))
+    btn.Text = "≡"
+    btn.TextScaled = true
+    btn.Font = Enum.Font.SourceSansBold
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.ZIndex = 999999
+    btn.AutoButtonColor = false
+    btn.Parent = btnGui
 
-end
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
 
-local title = findTitle()
-if not title then return end
-if title:FindFirstChild("MinimizeArrowButton") then return end
+    -- ⏳ GARANTIR TAMANHO REAL
+    btn:GetPropertyChangedSignal("AbsoluteSize"):Wait()
 
-local parent = title.Parent
-local orig = parent.Size
-local mini = UDim2.new(orig.X.Scale, orig.X.Offset, 0, 40)
+    -- 🟣 ARRASTAR (PC + MOBILE)
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
 
-local btn = Instance.new("TextButton")
-btn.Name = "MinimizeArrowButton"
-btn.Size = UDim2.new(0, 28, 0, 28)
-btn.AnchorPoint = Vector2.new(1, 0.5)
-btn.Position = UDim2.new(1, -6, 0.5, 0)
-btn.BackgroundTransparency = 1
-btn.Text = "▲"   -- seta padrão (maximizado)
-btn.TextScaled = true
-btn.Font = Enum.Font.SourceSansBold
-btn.TextColor3 = Color3.new(1,1,1)
-btn.ZIndex = (title.ZIndex or 1) + 5
-btn.Parent = title
+    local function clampToScreen(pos)
+        local screenSize = Camera.ViewportSize
+        local btnSize = btn.AbsoluteSize
 
-local minimized = false
+        local x = math.clamp(pos.X.Offset, 0, screenSize.X - btnSize.X)
+        local y = math.clamp(pos.Y.Offset, 0, screenSize.Y - btnSize.Y)
 
-btn.MouseButton1Click:Connect(function()
-minimized = not minimized
+        return UDim2.fromOffset(x, y)
+    end
 
-if minimized then    
-    btn.Text = "▼"  -- seta quando minimizado    
+    local function update(input)
+        local delta = input.Position - dragStart
+        local newPos = UDim2.fromOffset(
+            startPos.X.Offset + delta.X,
+            startPos.Y.Offset + delta.Y
+        )
+        btn.Position = clampToScreen(newPos)
+    end
 
-    for _,c in ipairs(parent:GetChildren()) do    
-        if c ~= title and c ~= btn and c:IsA("GuiObject") then    
-            c.Visible = false    
-        end    
-    end    
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = btn.Position
 
-    pcall(function()    
-        TweenService:Create(parent, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = mini}):Play()    
-    end)    
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
 
-else    
-    btn.Text = "▲"  -- seta quando maximizado    
+    btn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
 
-    for _,c in ipairs(parent:GetChildren()) do    
-        if c:IsA("GuiObject") then    
-            c.Visible = true    
-        end    
-    end    
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            update(input)
+        end
+    end)
 
-    pcall(function()    
-        TweenService:Create(parent, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = orig}):Play()    
-    end)    
-end
+    -- 🔁 MINIMIZAÇÃO
+    local minimized = false
 
+    local function toggle()
+        minimized = not minimized
+        felssjGui.Enabled = not minimized
+        btn.Text = minimized and "▶" or "≡"
+    end
+
+    btn.MouseButton1Click:Connect(toggle)
+
+    -- ⌨️ TECLA PARA PC (F4)
+    local TOGGLE_KEY = Enum.KeyCode.F4
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard
+        and input.KeyCode == TOGGLE_KEY then
+            toggle()
+        end
+    end)
 end)
-
-end)
-
-
-
-
