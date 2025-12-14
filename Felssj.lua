@@ -172,6 +172,8 @@ task.spawn(function()
     text.Text = "PC: Press F4 to minimize\nMobile: Tap the ≡ button to minimize"
 text.TextWrapped = true
 text.TextScaled = true
+text.TextColor3 = Color3.new(1, 1, 1)
+text.BackgroundTransparency = 1
     text.Font = Enum.Font.GothamMedium
     text.ZIndex = 1000
 
